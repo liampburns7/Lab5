@@ -1,0 +1,21 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "stlinkgdbtarget",
+            "request": "launch",
+            "name": "Debug STM32F446RE",
+            "cwd": "${workspaceFolder}",
+
+            "preLaunchTask": "Build STM32 Debug",
+
+            "runEntry": "main",
+
+            "imagesAndSymbols": [
+                {
+                    "imageFileName": "${workspaceFolder}/build/Debug/STM32_Project.elf"
+                }
+            ]
+        }
+    ]
+}
