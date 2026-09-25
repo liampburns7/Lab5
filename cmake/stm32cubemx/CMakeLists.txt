@@ -17,6 +17,9 @@ set(MX_Include_Dirs
 # STM32CubeMX generated application sources
 set(MX_Application_Src
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/usart.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/syscalls.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/sysmem.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../startup_stm32f446xx.s
 )
 

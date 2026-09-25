@@ -17,8 +17,13 @@
   */
 
 #include "stm32f446xx.h"
+#include "USART.h"
 
 int main(void)
 {
-    for (;;);
+  USART_Init();
+
+  USART2_write("Hello, World!");
+
+  for (;;);
 }
