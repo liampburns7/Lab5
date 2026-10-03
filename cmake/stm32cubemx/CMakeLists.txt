@@ -16,7 +16,11 @@ set(MX_Include_Dirs
 
 # STM32CubeMX generated application sources
 set(MX_Application_Src
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/systick.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/keypad.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/ds3231.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/main.c
+    ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/i2c.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/usart.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/syscalls.c
     ${CMAKE_CURRENT_SOURCE_DIR}/../../Src/sysmem.c
