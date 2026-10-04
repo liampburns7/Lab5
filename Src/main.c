@@ -15,41 +15,136 @@
 #include <stdbool.h>
 #include <stdio.h>
 
+typedef enum {
+    Choose_Action,
+    Prompt_Data,
+    Write_RTC,
+    Read_RTC,
+    Display_Data
+} program_state_t;
+
 void GPIO_Init(void);
 void EXTI_Init(void);
 
+uint8_t Read_Digit(bool special_allowed, bool echo);
+uint16_t Read_Digits(uint8_t num_digits);
+uint8_t Prompt_Ranged_Number(uint8_t min, uint8_t max, uint8_t num_digits);
+
 volatile bool kpd_event = 0;
+uint8_t last_input = 0;
+
+uint8_t valid_days_by_month[12] = {
+    31, 28, 31, 30, 31, 30,
+    31, 31, 30, 31, 30, 31
+};
+
+char line[64];
+char curr_prompt[64];
+
+program_state_t program_state = Choose_Action;
 
 int main(void)
 {
   USART_Init();
   I2C_init();
-  EXTI_Init();
   GPIO_Init();
+  EXTI_Init();
 
-  GPIOC->BSRR = (0xF << 16);   // PC0-PC3 LOW
-
-  uint8_t kpd_in, num;
-  char line[32];
-
-  USART2_write("Hello, World!");
+  int16_t curr_yr, curr_month, curr_day, curr_hr, curr_min, curr_sec;
 
   while(true) {
-    if (kpd_event) {
-      kpd_event = false;
+    switch (program_state) {
+      case Choose_Action:
+        while (true) {
+          sprintf(curr_prompt, "\n\n\nEnter # to set RTC Data. Enter * to display RTC data: ");
+          USART2_write(curr_prompt);
+          // Read digit, special allowed
+          last_input = Read_Digit(true, true);
+          USART2_write("\n");
+          
+          if (last_input == KEY_STAR) {
+            program_state = Display_Data;
+            break;
+          }
 
-      kpd_in = Read_Keypad();
+          if (last_input == KEY_HASH) {
+            program_state = Prompt_Data;
+            break;
+          }
 
-      if (kpd_in != 0) {  // Guard against 0
-        num = kpd_in;
-      }
+          USART2_write("Invalid Entry.");
+        }
+
+        break;
+
+      case Prompt_Data:
+        
+        // Prompt for month
+        sprintf(curr_prompt, "Enter Current Year (2 Digits): ");
+        curr_yr = Prompt_Ranged_Number(0, 99, 2);
+        USART2_write("\n");
+
+        // Prompt for month
+        sprintf(curr_prompt, "Enter Current Month (2 Digits): ");
+        curr_month = Prompt_Ranged_Number(1, 12, 2);
+        USART2_write("\n");
+
+        // Prompt for day of month
+        sprintf(curr_prompt, "Enter Current Day (2 Digits): ");
+        curr_day = Prompt_Ranged_Number(1, valid_days_by_month[curr_month - 1], 2);
+        USART2_write("\n");
+
+        // Prompt for hour
+        sprintf(curr_prompt, "Enter Current Hour (2 Digits): ");
+        curr_hr = Prompt_Ranged_Number(0, 23, 2);
+        USART2_write("\n");
+
+        // Prompt for minute
+        sprintf(curr_prompt, "Enter Current Minute (2 Digits): ");
+        curr_min = Prompt_Ranged_Number(0, 59, 2);
+        USART2_write("\n");
+
+        // Prompt for second
+        sprintf(curr_prompt, "Enter Current Second (2 Digits): ");
+        curr_sec = Prompt_Ranged_Number(0, 59, 2);
+        USART2_write("\n");
+
+        // Display Confirmation
+        sprintf(line, "%02d/%02d/%02d, %02d:%02d:%02d", 
+          curr_month, curr_day, curr_yr,
+          curr_hr, curr_min, curr_sec);
+        
+        USART2_write("Entered Date: ");
+        USART2_write(line);
+        USART2_write("\n");
+        
+        program_state = Write_RTC;
+
+        break;
+
+      case Write_RTC:
+
+        break;
+
+      case Read_RTC:
+
+        break;
+
+      case Display_Data:
+
+        break;
+
+      default:
+        break;
+
     }
   }
 
   // Address of DS3231: 0x68
 }
 
-void GPIO_Init(void) {
+void GPIO_Init(void) 
+{
   /* GPIO Initialization 
   *  
   * Configures the GPIO pins shown below for their
@@ -72,7 +167,6 @@ void GPIO_Init(void) {
   /* Drive PC4-PC6 LOW while idle */
   GPIOC->BSRR = (0x7U << 20);
 }
-
 
 void EXTI_Init(void)
 {
@@ -99,14 +193,68 @@ void EXTI_Init(void)
   NVIC_EnableIRQ(EXTI3_IRQn);
 }
 
-void EXTI9_5_IRQHandler(void) {
-  /* Keypad rising edge detected */
-  if (EXTI->PR & ((1U << 6) | (1U << 5))) {
-    EXTI->PR = (1U << 6) | (1U << 5);   // clear EXTI5,6
+uint8_t Read_Digit(bool special_allowed, bool echo) 
+{
+  uint8_t key;
 
-    // Set global event flag to be handled in main
-    kpd_event = true;
+  do {
+    while (!kpd_event);
+    kpd_event = false;
+
+    key = Read_Keypad();
+
+  } while ( // Ignore empty reads and disallowed special keys
+    key == KEY_NONE ||
+    (!special_allowed && (key == KEY_STAR || key == KEY_HASH))
+  );
+
+  // Echo back entered digit if echo is true
+  if (echo) {
+    if (key == KEY_STAR) {
+      USART2_write("*");
+    }
+    else if (key == KEY_HASH) {
+      USART2_write("#");
+    }
+    else {
+      sprintf(line, "%d", key);
+      USART2_write(line);
+    }
   }
+
+  return key;
+}
+
+uint16_t Read_Digits(uint8_t num_digits) 
+{
+  uint16_t num = 0;
+
+  for (int i = 0; i < num_digits; i++) {
+    // Prompt for the next digit until num_digits = 0
+    // First digit entered -> Most significant digit (base 10)
+    num = num * 10 + Read_Digit(false, true); 
+  }
+
+  return num;
+}
+
+uint8_t Prompt_Ranged_Number(uint8_t min, uint8_t max, uint8_t num_digits) 
+{
+  uint16_t num;
+  bool valid = false;
+
+  do {
+    USART2_write(curr_prompt);
+    num = Read_Digits(num_digits);
+
+    valid = (num >= min && num <= max);
+
+    if (!valid) {
+      USART2_write("\nInvalid Entry!\n");
+    }
+  } while (!valid);
+  
+  return num;
 }
 
 void EXTI0_IRQHandler(void)

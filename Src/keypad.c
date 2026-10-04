@@ -26,7 +26,7 @@ uint8_t Read_Keypad(void)
   }
 
   if (curr_col == 3) {
-    num = 0;
+    num = KEY_NONE;
   }
   else {
     if (row_data == 0x0E) num = curr_col + 1;
@@ -34,8 +34,11 @@ uint8_t Read_Keypad(void)
     if (row_data == 0x0B) num = curr_col + 7;
     if (row_data == 0x07) num = curr_col + 10;
 
-    /* Wait for key release */
     while ((GPIOC->IDR & 0x0F) != 0x0F);
+  }
+
+  if (num == 11) {
+    num = 0;
   }
 
   /* Restore idle condition: PC4-PC6 outputs LOW */
