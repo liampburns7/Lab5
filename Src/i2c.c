@@ -24,7 +24,7 @@ void I2C_init(void)
     I2C1->CR1 |= 0x0001;            // Enable I2C1
 }
 
-int I2C1_byteWrite(char saddr, char maddr, char data) {
+uint8_t I2C1_byteWrite(char saddr, char maddr, char data) {
     /* Write information to given memory address on slave
     *
     * Input:
@@ -57,7 +57,7 @@ int I2C1_byteWrite(char saddr, char maddr, char data) {
     return 0;
 }
 
-int I2C1_byteRead(char saddr, char maddr, char *data)
+uint8_t I2C1_byteRead(char saddr, char maddr, char *data)
 {
     volatile int tmp;
 

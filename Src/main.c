@@ -11,6 +11,7 @@
 #include "USART.h"
 #include "i2c.h"
 #include "keypad.h"
+#include "ds3231.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -50,7 +51,7 @@ int main(void)
   GPIO_Init();
   EXTI_Init();
 
-  int16_t curr_yr, curr_month, curr_day, curr_hr, curr_min, curr_sec;
+  DateTime rtc;
 
   while(true) {
     switch (program_state) {
@@ -63,7 +64,7 @@ int main(void)
           USART2_write("\n");
           
           if (last_input == KEY_STAR) {
-            program_state = Display_Data;
+            program_state = Read_RTC;
             break;
           }
 
@@ -81,38 +82,38 @@ int main(void)
         
         // Prompt for month
         sprintf(curr_prompt, "Enter Current Year (2 Digits): ");
-        curr_yr = Prompt_Ranged_Number(0, 99, 2);
+        rtc.year = Prompt_Ranged_Number(0, 99, 2);
         USART2_write("\n");
 
         // Prompt for month
         sprintf(curr_prompt, "Enter Current Month (2 Digits): ");
-        curr_month = Prompt_Ranged_Number(1, 12, 2);
+        rtc.month = Prompt_Ranged_Number(1, 12, 2);
         USART2_write("\n");
 
         // Prompt for day of month
         sprintf(curr_prompt, "Enter Current Day (2 Digits): ");
-        curr_day = Prompt_Ranged_Number(1, valid_days_by_month[curr_month - 1], 2);
+        rtc.day = Prompt_Ranged_Number(1, valid_days_by_month[rtc.month - 1], 2);
         USART2_write("\n");
 
         // Prompt for hour
         sprintf(curr_prompt, "Enter Current Hour (2 Digits): ");
-        curr_hr = Prompt_Ranged_Number(0, 23, 2);
+        rtc.hours = Prompt_Ranged_Number(0, 23, 2);
         USART2_write("\n");
 
         // Prompt for minute
         sprintf(curr_prompt, "Enter Current Minute (2 Digits): ");
-        curr_min = Prompt_Ranged_Number(0, 59, 2);
+        rtc.minutes = Prompt_Ranged_Number(0, 59, 2);
         USART2_write("\n");
 
         // Prompt for second
         sprintf(curr_prompt, "Enter Current Second (2 Digits): ");
-        curr_sec = Prompt_Ranged_Number(0, 59, 2);
+        rtc.seconds = Prompt_Ranged_Number(0, 59, 2);
         USART2_write("\n");
 
         // Display Confirmation
         sprintf(line, "%02d/%02d/%02d, %02d:%02d:%02d", 
-          curr_month, curr_day, curr_yr,
-          curr_hr, curr_min, curr_sec);
+          rtc.month, rtc.day, rtc.year,
+          rtc.hours, rtc.minutes, rtc.seconds);
         
         USART2_write("Entered Date: ");
         USART2_write(line);
@@ -124,13 +125,31 @@ int main(void)
 
       case Write_RTC:
 
+        set_datetime(rtc);
+        USART2_write("Date + Time Written to RTC.\n");
+
+        program_state = Choose_Action;
+
         break;
 
       case Read_RTC:
+        
+        USART2_write("Retrieving RTC Date + Time Data...\n");
+        get_datetime(&rtc);
+        
+        program_state = Display_Data;
 
         break;
 
       case Display_Data:
+
+        sprintf(line, "%02d/%02d/%02d, %02d:%02d:%02d", 
+          rtc.month, rtc.day, rtc.year,
+          rtc.hours, rtc.minutes, rtc.seconds);
+        USART2_write(line);
+        USART2_write("\n");
+
+        program_state = Choose_Action;
 
         break;
 
