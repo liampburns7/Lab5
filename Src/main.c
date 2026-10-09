@@ -39,7 +39,7 @@ uint8_t valid_days_by_month[12] = {
     31, 31, 30, 31, 30, 31
 };
 
-char line[64];
+char line[512];
 char curr_prompt[64];
 
 program_state_t program_state = Choose_Action;
@@ -52,6 +52,12 @@ int main(void)
   EXTI_Init();
 
   DateTime rtc;
+  float rtc_temperature;
+
+  double test = 25.25;
+  sprintf(line, "%.2f", test);
+  USART2_write(line);
+  USART2_write("\r\n");
 
   while(true) {
     switch (program_state) {
@@ -133,9 +139,10 @@ int main(void)
         break;
 
       case Read_RTC:
-        
-        USART2_write("Retrieving RTC Date + Time Data...\n");
+
+        // Grab data
         get_datetime(&rtc);
+        rtc_temperature = get_temperature();
         
         program_state = Display_Data;
 
@@ -143,11 +150,33 @@ int main(void)
 
       case Display_Data:
 
-        sprintf(line, "%02d/%02d/%02d, %02d:%02d:%02d", 
-          rtc.month, rtc.day, rtc.year,
-          rtc.hours, rtc.minutes, rtc.seconds);
-        USART2_write(line);
-        USART2_write("\n");
+        sprintf(curr_prompt, "\nEnter your choice from the following selections:\n" \
+                          "[0] Read time from RTC\n" \
+                          "[1] Read date from RTC\n" \
+                          "[2] Read temperature from RTC\n");
+
+        last_input = Prompt_Ranged_Number(0, 2, 1);
+        
+        // Display data based on entry
+        switch (last_input) {
+          case 0:
+            sprintf(line, "\nCurrent date: %d/%d/%d\n", rtc.month, rtc.day, rtc.year);
+            USART2_write(line);
+
+            break;
+          case 1:
+            sprintf(line, "\nCurrent time: %d:%d:%d\n", rtc.hours, rtc.minutes, rtc.seconds);
+            USART2_write(line);
+            
+            break;
+          case 2:
+            sprintf(line, "\nCurrent temperature: %0.2f\n", rtc_temperature);
+            USART2_write(line);
+          
+            break;
+          default:
+            break;
+        }
 
         program_state = Choose_Action;
 

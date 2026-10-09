@@ -40,6 +40,20 @@ void set_datetime(DateTime dt)
   I2C1_byteWrite(SADDR, YEAR_REG, Decimal_To_BCD(dt.year));
 }
 
+float get_temperature(void)
+{
+    uint8_t upper;
+    uint8_t lower;
+
+    I2C1_byteRead(SADDR, TPH_REG, &upper);
+    I2C1_byteRead(SADDR, TPL_REG, &lower);
+
+    int8_t integer_part = (int8_t)upper;
+    float fractional_part = (lower >> 6) * 0.25f;
+
+    return integer_part + fractional_part;
+}
+
 uint8_t BCD_To_Decimal(uint8_t bcd)
 {
   return ((bcd >> 4) * 10) + (bcd & 0x0F);

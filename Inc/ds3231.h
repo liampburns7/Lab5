@@ -13,6 +13,8 @@
 #define HOUR_REG 0x02
 #define MIN_REG 0x01
 #define SEC_REG 0x00
+#define TPH_REG 0x11
+#define TPL_REG 0x12
 
 #include "stm32f446xx.h"
 #include "i2c.h"
@@ -28,6 +30,8 @@ typedef struct {
 
 void get_datetime(DateTime *dt);
 void set_datetime(DateTime dt);
+
+float get_temperature();
 
 uint8_t BCD_To_Decimal(uint8_t bcd);
 uint8_t Decimal_To_BCD(uint8_t decimal);
